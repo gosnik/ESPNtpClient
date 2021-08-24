@@ -25,11 +25,7 @@ extern "C" {
 #include "lwip/err.h"
 #include "lwip/dns.h"
 #include "sys/time.h"
-#ifdef ESP32
-#include "include/time.h"
-#else
 #include "time.h"
-#endif
 #include "lwip/udp.h"
 #include "lwip/ip_addr.h"
 }
@@ -112,7 +108,7 @@ typedef struct {
       * @brief 2-bit integer warning of an impending leap
       * second to be inserted or deleted in the last minute of the current
       * month with values defined in this table
-      * 
+      *
       * | Value | Meaning |
       * |:----------:|-------------|
       * | 0     | no warning                             |
@@ -124,7 +120,7 @@ typedef struct {
     int vers; ///< @brief 3-bit integer representing the NTP version number, currently 4
     /**
       * @brief 3-bit integer representing the mode, with values defined in this table
-      * 
+      *
       * | Value | Meaning                  |
       * |:-----:|--------------------------|
       * | 0     | reserved                 |
@@ -145,10 +141,10 @@ typedef struct {
 typedef struct {
     bool valid = false; ///< @brief true if following data is valid
     NTPFlags_t flags; ///< @brief NTP packet flags as NTPFlags_t
-    
+
     /**
       * @brief 8-bit integer representing the stratum
-      * 
+      *
       * | Value  | Meaning                                             |
       * |:------:|-----------------------------------------------------|
       * | 0      | unspecified or invalid                              |
@@ -158,42 +154,42 @@ typedef struct {
       * | 17-255 | reserved                                            |
       */
     uint8_t peerStratum;
-    
+
      /**
       * @brief Maximum interval between successive messages, in seconds.
       *
-      * Calculated from 8-bit signed integer representing log2 value. Suggested default limits for 
+      * Calculated from 8-bit signed integer representing log2 value. Suggested default limits for
       * minimum and maximum poll intervals are 6 and 10, what represent 64 to 1024 seconds, respectively
       */
     uint32_t pollingInterval;
-    
+
     /**
       * @brief 8-bit signed integer representing the precision of the
       * system clock, in log2 seconds
-      * 
+      *
       * For instance, a value of -18 corresponds to a precision of about one microsecond.
       * The precision can be determined when the service first starts up as the minimum
       * time of several iterations to read the system clock
       */
     float clockPrecission;
-       
+
     float rootDelay; ///< @brief Total round-trip delay to the reference clock
-    
+
     float dispersion; ///< @brief Total dispersion to the reference clock
-    
+
      /**
       * @brief 32-bit code identifying the particular server or reference clock
-      * 
+      *
       * The interpretation depends on the value in the stratum field.
       * For packet stratum 0 (unspecified or invalid), this is a four-character ASCII [RFC1345] string,
       * called the "kiss code", used for debugging and monitoring purposes. For stratum 1 (reference
       * clock), this is a four-octet, left-justified, zero-padded ASCII string assigned to the
-      * reference clock. 
-      * 
+      * reference clock.
+      *
       * The authoritative list of Reference Identifiers is maintained by IANA; however, any string
-      * beginning with the ASCII character "X" is reserved for unregistered experimentation and 
+      * beginning with the ASCII character "X" is reserved for unregistered experimentation and
       * development. Next identifiers have been used as ASCII identifiers:
-      * 
+      *
       * | ID   | Clock Source                                             |
       * |:----:|----------------------------------------------------------|
       * | GOES | Geosynchronous Orbit Environment Satellite               |
@@ -215,16 +211,16 @@ typedef struct {
       * | ACTS | NIST telephone modem                                     |
       * | USNO | USNO telephone modem                                     |
       * | PTB  | European telephone modem                                 |
-      * 
+      *
       * Above stratum 1 (secondary servers and clients): this is the reference identifier of
       * the server and can be used to detect timing loops. If using the IPv4 address family,
       * the identifier is the four-octet IPv4 address. If using the IPv6 address family, it is the
       * first four octets of the MD5 hash of the IPv6 address. Note that, when using the IPv6 address
-      * family on an NTPv4 server with a NTPv3 client, the Reference Identifier field appears to be a 
+      * family on an NTPv4 server with a NTPv3 client, the Reference Identifier field appears to be a
       * random value and a timing loop might not be detected
       */
     uint8_t refID[4];
-    
+
     timeval reference; ///< @brief Time when the system clock was last set or corrected
     timeval origin; ///< @brief Time at the client when the request departed for the server
     timeval receive; ///< @brief Time at the server when the request arrived from the client
@@ -257,7 +253,7 @@ protected:
     uint numSyncRetry;              ///< @brief Current resync repetition
     uint maxDispersionErrors = DEFAULT_MAX_RESYNC_RETRY;            ///< @brief Number of resync repetitions if server has a dispersion value bigger than offset absolute value
     uint numDispersionErrors;
-    long timeSyncThreshold = DEFAULT_TIME_SYNC_THRESHOLD;           ///< @brief If calculated offset is below this threshold it will not be applied. 
+    long timeSyncThreshold = DEFAULT_TIME_SYNC_THRESHOLD;           ///< @brief If calculated offset is below this threshold it will not be applied.
                                                                     //            This is to avoid continious innecesary glitches in clock
     uint numTimeouts = 0;           ///< @brief After this number of timeout responses ntp sync time is increased
     NTPStatus_t status = unsyncd;   ///< @brief Sync status
@@ -277,23 +273,23 @@ protected:
     bool isConnected = false;       ///< @brief True if client has resolved correctly server IP address
     double offset;                  ///< @brief Temporary offset storage for event notify
     double delay;                   ///< @brief Temporary delay storage for event notify
-    timezone timeZone;              ///< @brief 
+    timezone timeZone;              ///< @brief
     char tzname[TZNAME_LENGTH];     ///< @brief Configuration string for local time zone
-    
+
     int64_t offsetSum;              ///< @brief Sum of offsets for average calculation
     int64_t offsetAve;              ///< @brief Average calculated value
-    uint round = 0;                 ///< @brief Number of offset values added during last sync 
+    uint round = 0;                 ///< @brief Number of offset values added during last sync
     uint numAveRounds = DEFAULT_NUM_OFFSET_AVE_ROUNDS;          ///< @brief Number of request to be done to calculate average.
-    
+
     pbuf* lastNtpResponsePacket;    ///< @brief Last response packet to be processed by receiver task
     bool responsePacketValid = false;                           ///< @brief Is `lastNtpResponsePacket` already processed?
-    
+
     /**
       * @brief Gets time from NTP server and convert it to Unix time format
       * @param arg `NTPClient` instance
       */
     static void s_getTimeloop (void* arg);
-    
+
     /**
       * @brief Static method that calls `recvPacket`. Used in receiver task
       * @param arg user supplied argument (udp_pcb.recv_arg)
@@ -304,13 +300,13 @@ protected:
       */
     static void s_recvPacket (void* arg, struct udp_pcb* pcb, struct pbuf* p,
                               const ip_addr_t* addr, u16_t port);
-    
+
     /**
       * @brief Receiver task to check for received packets and launch packet processor
       * @param arg `NTPClient` instance
-      */ 
+      */
     static void s_receiverTask (void* arg);
-    
+
     /**
       * @brief Checks if received packet may be used to get a good sync
       * @param ntpPacket Packet to analyze
@@ -318,36 +314,36 @@ protected:
       * @return `true` if NTP packet is good for sync
       */
     bool checkNTPresponse (NTPPacket_t* ntpPacket, int64_t offsetUs);
-    
+
     /**
       * @brief Write NTP packet data to Serial monitor
       * @param decPacket Packet to analyze
       */
     void dumpNtpPacketInfo (NTPPacket_t* decPacket);
-    
+
     /**
       * @brief Static method to call NTP response timeout processor
       */
     static void s_processRequestTimeout (void* arg);
-    
+
     /**
       * @brief Process internal state in case of a response timeout. If a response comes later is is asumed as non valid
       */
     void processRequestTimeout ();
-    
+
     /**
       * @brief Sends NTP request to server
       * @return false in case of any error
       */
     boolean sendNTPpacket ();
-    
-       
+
+
     /**
       * @brief Gets packet response and update time as of its data
       * @param p UDP response packet
       */
     void processPacket (struct pbuf* p);
-    
+
     /**
       * @brief Decodes NTP response contained in buffer
       * @param messageBuffer Pointer to message buffer
@@ -363,7 +359,7 @@ protected:
       * @return Time offset in `timeval` format
       */
     timeval calculateOffset (NTPPacket_t* ntpPacket);
-    
+
     /**
       * @brief Applies offset to system clock
       * @param offset Calculated offset
@@ -378,7 +374,7 @@ public:
     ~NTPClient () {
         stop ();
     }
-    
+
     /**
       * @brief Cleans data and stops all tasks
       */
@@ -408,10 +404,10 @@ public:
         // }
 #endif // ESP8266
     }
-    
+
     /**
       * @brief Starts a NTP time request to server. Only called from library, normally.
-      * 
+      *
       * Kept in public section to allow direct NTP request.
       */
     void getTime ();
@@ -422,14 +418,14 @@ public:
       * @return `true` if everything went ok
       */
     bool begin (const char* ntpServerName = DEFAULT_NTP_SERVER);
-    
+
     /**
       * @brief Sets NTP server name
       * @param serverName New NTP server name
       * @return `true` if everything went ok
       */
     bool setNtpServerName (const char* serverName);
-    
+
     /**
      * @brief Gets NTP server name
      * @return NTP server name
@@ -437,7 +433,7 @@ public:
     char* getNtpServerName () {
         return ntpServerName;
     }
-    
+
     /**
       * @brief Set a callback that triggers after a sync event
       * @param handler function with `onSyncEvent_t` to notify events to user code
@@ -447,14 +443,14 @@ public:
             onSyncEvent = handler;
         }
     }
-    
+
     /**
       * @brief Changes sync period
       * @param interval New interval in seconds
       * @return True if everything went ok
       */
     bool setInterval (int interval);
-    
+
     /**
       * @brief Changes sync period in sync'd and unsync'd status
       * @param shortInterval New interval while time is not first adjusted yet, in seconds
@@ -462,7 +458,7 @@ public:
       * @return True if everything went ok
       */
     bool setInterval (int shortInterval, int longInterval);
-    
+
     /**
       * @brief Gets sync period
       * @return Interval for normal operation, in seconds
@@ -483,7 +479,7 @@ public:
       * @brief Gets sync period
       * @return Interval for normal operation in seconds
       */
-    int	getLongInterval () { 
+    int	getLongInterval () {
         return longInterval / 1000;
     }
 
@@ -500,21 +496,21 @@ public:
             minSyncAccuracyUs = minAccuracy;
         }
     }
-    
+
     /**
       * @brief Sets time sync threshold. If offset is under this value time will not be adjusted
       * @param threshold Desired sync threshold
       */
     void settimeSyncThreshold (long threshold) {
         const int minThreshold = 100;
-        
+
         if (threshold > minThreshold) {
             timeSyncThreshold = threshold;
         } else {
             timeSyncThreshold = minThreshold;
         }
     }
-    
+
     /**
       * @brief Sets max number of sync retrials if minimum accuracy has not been reached
       * @param maxRetry Max sync retrials number
@@ -538,7 +534,7 @@ public:
         setenv ("TZ", tzname, 1);
         tzset ();
     }
-    
+
     /**
       * @brief Converts current time to a char string
       * @return String built from current time
@@ -559,7 +555,7 @@ public:
         snprintf (strBuffer + index, sizeof (strBuffer) - index, ".%06ld", moment.tv_usec);
         return strBuffer;
     }
-    
+
     /**
       * @brief Converts a time in UNIX format to a char string representing time
       * @param moment `time_t` value (UNIXtime) to convert to extract time
@@ -588,7 +584,7 @@ public:
     char* getDateStr (timeval moment) {
         return getDateStr (moment.tv_sec);
     }
-    
+
     /**
     * @brief Converts a time in UNIX format to a char string representing its date
     * @param moment time_t object to convert to extract date
@@ -599,7 +595,7 @@ public:
         strftime (strBuffer, sizeof (strBuffer), "%02d/%m/%04Y", local_tm);
         return strBuffer;
     }
-    
+
     /**
     * @brief Converts current time and date to a char string
     * @param[out] Char string built from current time.
@@ -618,7 +614,7 @@ public:
         gettimeofday (&currentTime, NULL);
         return getTimeDateString (currentTime);
     }
-    
+
     /**
     * @brief Converts current time and date to a char string
     * @return Char string built from current time
@@ -626,7 +622,7 @@ public:
     char* getTimeDateStringForJS () {
         return getTimeDateString (time (NULL), "%02m/%02d/%04Y %02H:%02M:%02S");
     }
-    
+
     /**
     * @brief Converts given time and date to a char string
     * @param moment `timeval` object to convert to String
@@ -653,7 +649,7 @@ public:
 
         return strBuffer;
     }
-    
+
     /**
     * @brief Gets last successful sync time in UNIX format, with microseconds
     * @return Last successful sync time. 0 equals never
@@ -662,7 +658,7 @@ public:
         return lastSyncd;
     }
 
-    
+
     /**
     * @brief Gets last successful sync time in UNIX format
     * @return Last successful sync time. 0 equals never
@@ -693,7 +689,7 @@ public:
     timeval getFirstSyncUs () {
         return firstSync;
     }
-    
+
     /**
     * @brief Gets first successful synchronization time after boot
     * @return First sync time
@@ -701,7 +697,7 @@ public:
     time_t getFirstSync () {
         return firstSync.tv_sec;
     }
-    
+
     /**
     * @brief Returns sync status
     * @return Sync status as NTPStatus_t
@@ -721,7 +717,7 @@ public:
         //Serial.printf ("timeval: %ld.%ld millis %lld\n", currentTime.tv_sec, currentTime.tv_usec, milliseconds);
         return milliseconds;
     }
-    
+
     /**
      * @brief Gets microseconds since 1-Jan-1970 00:00 UTC
      * @return microseconds since 1-Jan-1970 00:00 UTC
@@ -762,7 +758,7 @@ public:
     uint getnumAveRounds () {
         return numAveRounds;
     }
-    
+
 };
 
 extern NTPClient NTP; ///< @brief Singleton NTPClient instance

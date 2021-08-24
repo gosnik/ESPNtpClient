@@ -75,7 +75,7 @@ typedef struct {
 
   /**
     * @brief Short NTP Timestamp Format
-    * 
+    *
     * Used for precission, dispersion, etc
     */
 typedef struct {
@@ -156,7 +156,7 @@ char* dumpNTPPacket (char* data, size_t length, char* buffer, int len) {
 
 bool NTPClient::begin (const char* ntpServerName) {
     err_t result;
-    
+
     if (!setNtpServerName (ntpServerName) || !strnlen (ntpServerName, SERVER_NAME_LENGTH)) {
         DEBUGLOGE ("Invalid NTP server name");
         return false;
@@ -169,7 +169,7 @@ bool NTPClient::begin (const char* ntpServerName) {
         udp_remove (udp);
         udp = NULL;
     }
-    
+
 
     udp = udp_new ();
     if (!udp){
@@ -177,7 +177,7 @@ bool NTPClient::begin (const char* ntpServerName) {
         return false;
     }
     DEBUGLOGI ("NTP socket created");
-    
+
     if (WiFi.isConnected ()) {
         ip_addr_t localAddress;
 #ifdef ESP32
@@ -202,14 +202,14 @@ bool NTPClient::begin (const char* ntpServerName) {
         } else {
             isConnected = true;
         }
-        
+
         udp_recv (udp, &NTPClient::s_recvPacket, this);
     }
     lastSyncd.tv_sec = 0;
     lastSyncd.tv_usec = 0;
 
     actualInterval = ntpTimeout + 500;
-    
+
     DEBUGLOGI ("Time sync started. NExt sync in %u ms", actualInterval);
 
     // if (loopHandle) {
@@ -250,10 +250,10 @@ bool NTPClient::begin (const char* ntpServerName) {
     loopTimer.attach_ms (ESP8266_LOOP_TASK_INTERVAL, &NTPClient::s_getTimeloop, (void*)this);
     receiverTimer.attach_ms (ESP8266_RECEIVER_TASK_INTERVAL, &NTPClient::s_receiverTask, (void*)this);
 #endif
-    
+
     // DEBUGLOGI ("First time sync request");
     // getTime ();
-    
+
     return true;
 
 }
@@ -262,7 +262,7 @@ void NTPClient::processPacket (struct pbuf* packet) {
     NTPPacket_t ntpPacket;
     bool offsetApplied = false;
     static bool wasPartial;
-    
+
     if (!packet) {
         DEBUGLOGE ("Received packet empty");
     }
@@ -273,9 +273,9 @@ void NTPClient::processPacket (struct pbuf* packet) {
         //pbuf_free (packet);
         return;
     }
-    
+
     ntpRequested = false;
-    
+
     if (packet->len < NTP_PACKET_SIZE) {
         DEBUGLOGE ("Response Error");
         status = unsyncd;
@@ -288,25 +288,25 @@ void NTPClient::processPacket (struct pbuf* packet) {
             event.info.offset = 0;
             event.info.delay = 0;
             onSyncEvent (event);
-        }  
+        }
         //pbuf_free (packet);
         return;
     }
 
     responseTimer.detach ();
-    
+
     if (!decodeNtpMessage ((uint8_t*)packet->payload, packet->len, &ntpPacket)){
         DEBUGLOGE ("Null pointer packet");
         return;
     }
     timeval tvOffset = calculateOffset (&ntpPacket);
-    
+
     int64_t offset_us = (int64_t)tvOffset.tv_sec * 1000000L + (int64_t)tvOffset.tv_usec;
     offsetSum += offset_us;
     round++;
     offsetAve = offsetSum / round;
     DEBUGLOGI ("offset %lld -- sum %lld -- round %u -- average %lld", offset_us, offsetSum, round, offsetAve);
-    
+
     if (round >= numAveRounds) {
         tvOffset.tv_sec = offsetAve / 1000000L;
         tvOffset.tv_usec = offsetAve - tvOffset.tv_sec * 1000000;
@@ -318,7 +318,7 @@ void NTPClient::processPacket (struct pbuf* packet) {
         DEBUGLOGI ("Retry in %u ms", actualInterval);
         return;
     }
-    
+
     if (abs (offsetAve) < timeSyncThreshold) {
         DEBUGLOGW ("Offset under threshold. Not updating");
         status = syncd;
@@ -353,13 +353,13 @@ void NTPClient::processPacket (struct pbuf* packet) {
         }
         return;
     }
-        
+
     if (!checkNTPresponse (&ntpPacket, offsetAve)) {
         numDispersionErrors++;
         DEBUGLOGW ("Not valid or inaccurate response #%d", numDispersionErrors);
         if (numDispersionErrors > maxDispersionErrors) {
             numDispersionErrors = 0;
-            
+
             if (onSyncEvent) {
                 NTPEvent_t event;
                 event.event = accuracyError;
@@ -369,7 +369,7 @@ void NTPClient::processPacket (struct pbuf* packet) {
                 event.info.port = DEFAULT_NTP_PORT;
                 onSyncEvent (event);
             }
-                            
+
             // if (status == syncd) {
             //     actualInterval = longInterval;
             // } else {
@@ -451,7 +451,7 @@ void NTPClient::processPacket (struct pbuf* packet) {
 void NTPClient::s_recvPacket (void* arg, struct udp_pcb* pcb, struct pbuf* p,
                               const ip_addr_t* addr, u16_t port) {
     NTPPacket_t ntpPacket;
-    
+
     NTPClient* self = reinterpret_cast<NTPClient*>(arg);
     gettimeofday (&(self->packetLastReceived), NULL);
     DEBUGLOGI ("NTP Packet received from %s:%d", ipaddr_ntoa (addr), port);
@@ -468,12 +468,12 @@ void NTPClient::s_receiverTask (void* arg){
         if (self->responsePacketValid) {
             self->processPacket (self->lastNtpResponsePacket);
             if (self->lastNtpResponsePacket->ref > 0) {
-#ifdef ESP32
-                DEBUGLOGV ("pbuff type: %d", self->lastNtpResponsePacket->type);
-                DEBUGLOGV ("pbuff ref: %d", self->lastNtpResponsePacket->ref);
-                DEBUGLOGV ("pbuff next: %p", self->lastNtpResponsePacket->next);
-                if (self->lastNtpResponsePacket->type <= PBUF_POOL)
-#endif
+// #ifdef ESP32
+//                 DEBUGLOGV ("pbuff type: %d", self->lastNtpResponsePacket->type);
+//                 DEBUGLOGV ("pbuff ref: %d", self->lastNtpResponsePacket->ref);
+//                 DEBUGLOGV ("pbuff next: %p", self->lastNtpResponsePacket->next);
+//                 if (self->lastNtpResponsePacket->type <= PBUF_POOL)
+// #endif
                     pbuf_free (self->lastNtpResponsePacket);
             }
             self->responsePacketValid = false;
@@ -592,7 +592,7 @@ void NTPClient::s_getTimeloop (void* arg) {
 void NTPClient::getTime () {
     err_t result;
     static uint dnsErrors = 0;
-    
+
     result = WiFi.hostByName (getNtpServerName (), ntpServerIPAddress);
     if (!result) {
         DEBUGLOGE ("HostByName error");
@@ -603,7 +603,7 @@ void NTPClient::getTime () {
             event.info.serverAddress = ntpServerIPAddress;
             event.info.port = DEFAULT_NTP_PORT;
 
-            onSyncEvent (event);        
+            onSyncEvent (event);
         }
         if (dnsErrors >= 3) {
             dnsErrors = 0;
@@ -628,7 +628,7 @@ void NTPClient::getTime () {
         }
         return;
     }
-    
+
     ip_addr ntpAddr;
 #ifdef ESP32
     ntpAddr.type = IPADDR_TYPE_V4;
@@ -658,13 +658,13 @@ void NTPClient::getTime () {
             onSyncEvent (event);
         }
     }
-    
+
     DEBUGLOGI ("Sending UDP packet");
     NTPStatus_t prevStatus = status;
     ntpRequested = true;
     DEBUGLOGI ("Status set to REQUESTED");
     responseTimer.once_ms (ntpTimeout, &NTPClient::s_processRequestTimeout, static_cast<void*>(this));
-    
+
     if (!sendNTPpacket ()) {
         responseTimer.detach ();
         DEBUGLOGE ("NTP request error");
@@ -687,7 +687,7 @@ void NTPClient::getTime () {
         onSyncEvent (event);
     }
     //udp_disconnect (udp);
-    
+
 }
 
 boolean NTPClient::sendNTPpacket () {
@@ -704,16 +704,16 @@ boolean NTPClient::sendNTPpacket () {
     buffer->tot_len = sizeof (NTPUndecodedPacket_t);
 
     memset (&packet, 0, sizeof (NTPUndecodedPacket_t));
-    
+
     packet.flags = 0b11100011;
     packet.peerStratum = 0;
     packet.pollingInterval = 6;
     packet.clockPrecission = 0xEC; // 1 us
 
     gettimeofday (&currentime, NULL);
-    
+
     DEBUGLOGI ("sendNTPpacket");
-    
+
     if (currentime.tv_sec != 0) {
         packet.transmit.secondsOffset = flipInt32 (currentime.tv_sec + seventyYears);
         DEBUGLOGV ("Current time: %ld.%ld", currentime.tv_sec, currentime.tv_usec);
@@ -721,7 +721,7 @@ boolean NTPClient::sendNTPpacket () {
         DEBUGLOGV ("timestamp_us = 0x%08X %lu", timestamp_us, timestamp_us);
         packet.transmit.fraction = flipInt32 (timestamp_us);
         DEBUGLOGV ("Transmit: 0x%08X : 0x%08X", packet.transmit.secondsOffset, packet.transmit.fraction);
-        
+
     } else {
         packet.transmit.secondsOffset = 0;
         packet.transmit.fraction = 0;
@@ -737,12 +737,12 @@ boolean NTPClient::sendNTPpacket () {
     memcpy (buffer->payload, &packet, sizeof (NTPUndecodedPacket_t));
     result = udp_send (udp, buffer);
     if (buffer->ref > 0) {
-#ifdef ESP32
-        DEBUGLOGV ("pbuff type: %d", buffer->type);
-        DEBUGLOGV ("pbuff ref: %d", buffer->ref);
-        DEBUGLOGV ("pbuff next: %p", buffer->next);
-        if (buffer->type <= PBUF_POOL)
-#endif
+// #ifdef ESP32
+//         DEBUGLOGV ("pbuff type: %d", buffer->type);
+//         DEBUGLOGV ("pbuff ref: %d", buffer->ref);
+//         DEBUGLOGV ("pbuff next: %p", buffer->next);
+//         if (buffer->type <= PBUF_POOL)
+// #endif
             pbuf_free (buffer);
     }
     if (result == ERR_OK) {
@@ -840,7 +840,7 @@ bool NTPClient::setInterval (int shortInterval, int longInterval) {
 return true;
     } else {
         DEBUGLOGW ("Too low interval values");
-        return false;    
+        return false;
     }
 }
 
@@ -988,7 +988,7 @@ NTPPacket_t* NTPClient::decodeNtpMessage (uint8_t* messageBuffer, size_t length,
     //DEBUGLOGV ("Transmit: seconds %08X fraction %08X", recPacket.transmit.secondsOffset, recPacket.transmit.fraction);
     //DEBUGLOGV ("Transmit: %d.%06ld", decPacket->transmit.tv_sec, decPacket->transmit.tv_usec);
     DEBUGLOGV ("Transmit: %s.%06ld", ctime (&(decPacket->transmit.tv_sec)), decPacket->transmit.tv_usec);
-    
+
     decPacket->destination = packetLastReceived;
 
     return decPacket;
@@ -1000,7 +1000,7 @@ bool NTPClient::checkNTPresponse (NTPPacket_t* ntpPacket, int64_t offsetUs) {
         DEBUGLOGE ("Leap indicator error: %d", ntpPacket->flags.li);
         return false;
     }
-    
+
     if (ntpPacket->flags.vers != 4) {
         DEBUGLOGE ("NTP version error: %d", ntpPacket->flags.vers);
         return false;
@@ -1010,7 +1010,7 @@ bool NTPClient::checkNTPresponse (NTPPacket_t* ntpPacket, int64_t offsetUs) {
         DEBUGLOGE ("NTP mode error: %d", ntpPacket->flags.mode);
         return false;
     }
-    
+
     if (ntpPacket->peerStratum < 1 || ntpPacket->peerStratum > 15) {
         DEBUGLOGE ("Peer stratum error: %d", ntpPacket->peerStratum);
         return false;
@@ -1029,7 +1029,7 @@ bool NTPClient::checkNTPresponse (NTPPacket_t* ntpPacket, int64_t offsetUs) {
         if (ntpPacket->dispersion > abs(offsetUs / 1000000.0) || ntpPacket->dispersion == 0.0) {
             DEBUGLOGE ("Dispersion error: %0.3f ms > Offset: %0.3f ms", ntpPacket->dispersion * 1000.0, (float)(offsetUs / 1000.0));
             return false;
-        }    
+        }
     }
 
     return true;
@@ -1085,7 +1085,7 @@ bool NTPClient::adjustOffset (timeval* offset) {
     newtime.tv_usec = newtime_us - ((int64_t)newtime.tv_sec * 1000000L);
     // Serial.printf ("newtime_us: %lld\n", newtime_us);
     // Serial.printf ("newtime  %ld.%ld\n", newtime.tv_sec, newtime.tv_usec);
-    
+
     // if (_offset.tv_usec > 0) {
     //     timeradd (&currenttime, &_offset, &newtime);
     // } else {
