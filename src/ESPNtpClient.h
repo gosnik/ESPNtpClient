@@ -87,7 +87,7 @@ constexpr auto SECS_YR_2000 = ((time_t)(946684800UL)); ///< @brief The time at t
 #else
 #include <ESP8266WiFi.h>
 #endif
-#include <ESP32Ticker.h>
+#include <Ticker.h>
 
 #include "NTPEventTypes.h"
 
