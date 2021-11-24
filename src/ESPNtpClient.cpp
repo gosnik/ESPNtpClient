@@ -858,6 +858,7 @@ bool NTPClient::setNTPTimeout (uint16_t milliseconds) {
 }
 
 void NTPClient::dumpNtpPacketInfo (NTPPacket_t* decPacket) {
+    #ifndef NO_GLOBAL_SERIAL
     Serial.print ("------ Decoded NTP message -------\n");
     Serial.printf ("LI = %u\n", decPacket->flags.li);
     Serial.printf ("Version = %u\n", decPacket->flags.vers);
@@ -876,6 +877,7 @@ void NTPClient::dumpNtpPacketInfo (NTPPacket_t* decPacket) {
     Serial.printf ("Origin: %s\n", getTimeDateString (decPacket->origin));
     Serial.printf ("Receive: %s\n", getTimeDateString (decPacket->receive));
     Serial.printf ("Transmit: %s\n", getTimeDateString (decPacket->transmit));
+    #endif
 }
 
 NTPPacket_t* NTPClient::decodeNtpMessage (uint8_t* messageBuffer, size_t length, NTPPacket_t* decPacket) {
